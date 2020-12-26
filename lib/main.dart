@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:pets/BaseAuth.dart';
+import 'Router.dart';
 import 'StartPage.dart';
+import 'authorization.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -13,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: StartPage(title: 'Питомцы'),
+      home: new Router(auth: new Auth()),
     );
   }
 }

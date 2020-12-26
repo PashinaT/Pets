@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 
 import 'ListPets.dart';
+import 'UsersDb.dart';
 
 class HelperDb {
   static Database _db;
@@ -135,5 +136,10 @@ class HelperDb {
     var dbClient = await db;
     return await dbClient.update(TABLE_SHELTER, shelterDb.toMap(),
         where: '$ID_SHELTER = ?', whereArgs: [shelterDb.id]);
+  }
+
+  Future<UsersDb> getUserByLoginAndPassword (String login, String password) async{
+    UsersDb user;
+    return user;
   }
 }
