@@ -22,4 +22,10 @@ class ShelterDb {
     nameShelter = map['name_shelter'];
     addressShelter = map['name_address'];
   }
+
+  ShelterDb.fromJson(Map<String, dynamic> map) {
+    id = int.parse(map['id']);
+    nameShelter = map['nameShelter'];
+    addressShelter = map['addressShelter'];
+  }
 }

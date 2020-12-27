@@ -1,15 +1,19 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'BaseAuth.dart';
 import 'CreateAppeal.dart';
 import 'FoundAnimals.dart';
 import 'LostAnimals.dart';
+import 'Router.dart';
 import 'Shelter.dart';
+import 'db/UsersDb.dart';
 
 class StartPage extends StatelessWidget {
-  StartPage({Key key, this.title}) : super(key: key);
+  StartPage({Key key, this.title,this.user}) : super(key: key);
 
   final String title;
+  final UsersDb user;
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +27,26 @@ class StartPage extends StatelessWidget {
             ),
           ),
           backgroundColor: Colors.pink,
+          actions: <Widget>[
+            Padding(
+                padding: EdgeInsets.only(top: 18, right: 20.0),
+                child: Text(user.login,
+                    style: TextStyle(
+                      fontFamily: 'Comic',
+                      fontWeight: FontWeight.bold,
+                    ))),
+            Padding(
+                padding: EdgeInsets.only(right: 20.0),
+                child: GestureDetector(
+                  onTap: () async {
+                    Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                            builder: (c) => new Router(auth: new Auth())),
+                            (r) => false);
+                  },
+                  child: Icon(Icons.exit_to_app),
+                )),
+          ],
         ),
         body: Center(
             child: Container(

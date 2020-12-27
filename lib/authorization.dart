@@ -3,22 +3,22 @@ import 'package:flutter/material.dart';
 import 'BaseAuth.dart';
 
 class Authorization extends StatefulWidget {
+
+  Authorization({this.auth, this.voidCallback});
   final BaseAuth auth;
   final VoidCallback voidCallback;
-  Authorization(this.auth, this.voidCallback);
-
   String password;
   String login;
 
   @override
-  State<StatefulWidget> createState() {
+  State<StatefulWidget> createState() =>
     new AuthorizationForm(login, password);
-  }
+
 }
 class AuthorizationForm extends State<Authorization> {
   String login;
   String password;
-  AuthorizationForm(login, password);
+  AuthorizationForm(this.login, this.password);
   final _formalKey =GlobalKey<FormState>();
 
   @override
@@ -27,6 +27,7 @@ class AuthorizationForm extends State<Authorization> {
     return new Scaffold(
       appBar: new AppBar(
         title: new Text('Вход в приложение'),
+        backgroundColor: Colors.pink,
       ),
       body: Stack(
         children: <Widget>[
@@ -85,5 +86,18 @@ class AuthorizationForm extends State<Authorization> {
 
   validate() async{
 
+    if(_formalKey.currentState.validate()){
+      _formalKey.currentState.save();
+      int userId=0;
+      try{
+        userId = await widget.auth.signIn(login, password);
+        print('Зарегались');
+        widget.voidCallback();
+      }
+      catch(e){
+        print('Error');
+
+      }
+    }
   }
 }

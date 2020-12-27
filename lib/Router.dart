@@ -26,11 +26,11 @@ class _RouterState extends State<Router> {
   Widget build(BuildContext context) {
     switch(authStatus) {
       case AuthStatus.LOGGED_IN:
-        return new StartPage(title:"Питомцы");
+        return new StartPage(title:"Питомцы",user:user);
         break;
       case AuthStatus.NOT_LOGGED_IN:
       case AuthStatus.NOT_DETERMINED:
-        return new Authorization( widget.auth, loginCallback);
+        return new Authorization( auth: widget.auth, voidCallback:loginCallback);
         break;
     }
 

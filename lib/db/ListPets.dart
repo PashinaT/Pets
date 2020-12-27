@@ -39,4 +39,16 @@ class ListPets {
           map['id_shelter'], map['name_shelter'], map['name_address']);
     }
   }
+  ListPets.fromJson(Map<String, dynamic> map) {
+    id = int.parse(map['id']);
+    namePet = map['nameListPets'];
+    viewPet = map['viewListPets'];
+    colorPet = map['colorListPets'];
+    isFound = map['isFound'];
+    image = map['image'];
+    if (map['petsIdShelter'] != null) {
+      shelter = new ShelterDb(
+          int.parse( map['petsIdShelter']['id']), map['petsIdShelter']['nameShelter'], map['petsIdShelter']['addressShelter']);
+    }
+  }
 }

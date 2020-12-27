@@ -28,6 +28,11 @@ class HelperDb {
   static const String IS_FOUND = 'is_found_list_pets';
   static const String IMAGE = 'image_list_pets';
   static const String DB_NAME = 'pets';
+  static const String TABLE_USERS = 'Users';
+  static const String LOGIN = 'login';
+  static const String PASSWORD = 'password';
+  static const String ID_USER  ='user_id';
+  static String TOKEN = '';
 
   Future<Database> get db async {
     if (_db != null) {
@@ -44,8 +49,27 @@ class HelperDb {
   initDb() async {
     io.Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, DB_NAME);
+    await deleteDatabase(path);
        var db = await openDatabase(path, version: 1, onCreate: _onCreate);
     return db;
+  }
+
+  Future<String> getToken() async {
+    if (TOKEN.length == 0) {
+      var response = await http
+          .post('http://10.0.2.2:8080/app/rest/v2/oauth/token', headers: {
+        "Authorization": "Basic Y2xpZW50OnNlY3JldA==",
+        "Content-type": "application/x-www-form-urlencoded"
+      }, body: {
+        "grant_type": "password",
+        "username": "admin",
+        "password": "admin"
+      }).timeout(const Duration(seconds: 3));
+      TOKEN = jsonDecode(response.body)["access_token"];
+      return TOKEN;
+    } else {
+      return TOKEN;
+    }
   }
 
   _onCreate(Database db, int version) async {
@@ -65,6 +89,15 @@ class HelperDb {
             " $NAME_SHELTER TEXT,"
             " $ADDRESS_SHELTER TEXT"
             ")");
+
+    await db.execute(
+        "CREATE TABLE $TABLE_USERS ($ID_USER INTEGER PRIMARY KEY,"
+            " $LOGIN TEXT,"
+            " $PASSWORD TEXT"
+            ")");
+    await db.rawInsert(
+      "Insert into $TABLE_USERS($PASSWORD,$LOGIN) values (1,'1');"
+    );
   }
 
   void saveListPets(ListPets listPets) async {
@@ -73,28 +106,53 @@ class HelperDb {
   }
 
   Future<List<ListPets>> getListPets(bool isFound) async {
-    var dbClient = await db;
-    List<ListPets> listPets = [];
-    int isFoundInt = isFound == true ? 1 : 0;
-    List<Map> maps = [];
-    if (isFound == false){
-      maps = await dbClient.rawQuery(
-          "SELECT * FROM $TABLE_LIST_PETS  where $IS_FOUND=" +
-              isFoundInt.toString());
-    } else{
-      maps = await dbClient.rawQuery(
-          "SELECT * FROM $TABLE_LIST_PETS join $TABLE_SHELTER  on"
-              " $TABLE_LIST_PETS.$PETS_ID_SHELTER = $TABLE_SHELTER.$ID_SHELTER where $IS_FOUND=" +
-              isFoundInt.toString());
-    }
 
-
-    if (maps.length > 0) {
-      for (int i = 0; i < maps.length; i++) {
-        listPets.add(ListPets.fromMap(maps[i]));
+      http.Response response;
+      var queryParameters = {
+        "conditions": [
+          {"property": "isFound", "operator": "=", "value": isFound},
+        ]
+      };
+      var param = Uri.encodeComponent(jsonEncode(queryParameters));
+      print(param);
+      try {
+      response = await http.get(
+          'http://10.0.2.2:8080/app/rest/v2/entities/pets_TableListPets2/search?view=tableListPets-view&filter=' +
+              param,
+            headers: {
+              "Authorization": "Bearer " + await getToken()
+            }).timeout(const Duration(seconds: 6));
+    } on TimeoutException catch (e) {
+      var dbClient = await db;
+      List<ListPets> listPets = [];
+      int isFoundInt = isFound == true ? 1 : 0;
+      List<Map> maps = [];
+      if (isFound == false) {
+        maps = await dbClient.rawQuery(
+            "SELECT * FROM $TABLE_LIST_PETS  where $IS_FOUND=" +
+                isFoundInt.toString());
+      } else {
+        maps = await dbClient.rawQuery(
+            "SELECT * FROM $TABLE_LIST_PETS join $TABLE_SHELTER  on"
+                " $TABLE_LIST_PETS.$PETS_ID_SHELTER = $TABLE_SHELTER.$ID_SHELTER where $IS_FOUND=" +
+                isFoundInt.toString());
       }
+
+
+      if (maps.length > 0) {
+        for (int i = 0; i < maps.length; i++) {
+          listPets.add(ListPets.fromMap(maps[i]));
+        }
+      }
+      return listPets;
     }
-    return listPets;
+
+    List<ListPets> pets = (json.decode(response.body) as List)
+        .map((i) => ListPets.fromJson(i))
+        .toList();
+    String data = response.body;
+    print("Cервера" + data);
+    return pets;
   }
 
   Future<int> deleteListPets(int id) async {
@@ -115,15 +173,35 @@ class HelperDb {
   }
 
   Future<List<ShelterDb>> getShelter() async {
-    var dbClient = await db;
-    List<ShelterDb> shelterList = [];
-    List<Map> maps = await dbClient.rawQuery("SELECT * FROM $TABLE_SHELTER");
-    if (maps.length > 0) {
-      for (int i = 0; i < maps.length; i++) {
-        shelterList.add(ShelterDb.fromMap(maps[i]));
+
+    http.Response response;
+    try {
+      response = await http.get(
+          'http://10.0.2.2:8080/app/rest/v2/entities/pets_TableShelter?view=tableShelter-view',
+          headers: {
+            "Authorization": "Bearer " + await getToken()
+          }).timeout(const Duration(seconds: 3));
+    } on TimeoutException catch (e) {
+      print('Timeout');
+      var dbClient = await db;
+      List<ShelterDb> shelterList = [];
+      List<Map> maps = await dbClient.rawQuery("SELECT * FROM $TABLE_SHELTER");
+      if (maps.length > 0) {
+        for (int i = 0; i < maps.length; i++) {
+          shelterList.add(ShelterDb.fromMap(maps[i]));
+        }
       }
+      return shelterList;
     }
-    return shelterList;
+    on Error catch (e) {
+      print('Error: $e');
+    }
+    List<ShelterDb> shelters = (json.decode(response.body) as List)
+        .map((i) => ShelterDb.fromJson(i))
+        .toList();
+    String data = response.body;
+    print("Cервер" + data);
+    return shelters;
   }
 
   Future<int> deleteShelter(int id) async {
@@ -140,6 +218,43 @@ class HelperDb {
 
   Future<UsersDb> getUserByLoginAndPassword (String login, String password) async{
     UsersDb user;
-    return user;
+    var queryParameters = {
+      "conditions": [
+        {"property": "login", "operator": "=", "value": login},
+        {"property": "password", "operator": "=", "value": password},
+      ]
+    };
+    var param = Uri.encodeComponent(jsonEncode(queryParameters));
+    http.Response response;
+
+    try {
+      response = await http.get(
+          'http://10.0.2.2:8080/app/rest/v2/entities/pets_Users/search?view=users-view&filter=' +
+              param,
+          headers: {
+            "Authorization": "Bearer " + await getToken()
+          }).timeout(const Duration(seconds: 3));
+    } on TimeoutException catch (e) {
+      print('Timeout');
+      var dbClient = await db;
+      List<Map> maps = await dbClient.rawQuery("SELECT * FROM $TABLE_USERS "
+          "where $LOGIN=" +
+          login +
+          " and $PASSWORD=" +
+          password);
+      user = new UsersDb(-1, "", "");
+      if (maps.length > 0) {
+        user = UsersDb.fromMap(maps[0]);
+      }
+      return user;
+    } on Error catch (e) {
+      print('Error: $e');
+    }
+    List<UsersDb> users = (json.decode(response.body) as List)
+        .map((i) => UsersDb.fromJson(i))
+        .toList();
+    String data = response.body;
+    print("Cервер" + data);
+    return users.single;
   }
 }
